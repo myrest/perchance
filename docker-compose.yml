@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  perchance-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: perchance-web-api
+    ports:
+      - "8888:8888"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # 如果需要持久化日誌，可以掛載卷
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8888/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - perchance-network
+
+networks:
+  perchance-network:
+    driver: bridge
