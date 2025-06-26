@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perchance圖片生成API測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            text-align: center;
+        }
+        .image-result {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .generated-image {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .image-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Perchance圖片生成API測試</h1>
+        
+        <form id="imageForm">
+            <div class="form-group">
+                <label for="prompt">圖片描述 (必填):</label>
+                <textarea id="prompt" placeholder="例如: A beautiful sunset over mountains" required>A beautiful sunset over mountains</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="negative_prompt">負面提示詞 (選填):</label>
+                <input type="text" id="negative_prompt" placeholder="例如: blurry, low quality" value="blurry, low quality">
+            </div>
+            
+            <div class="form-group">
+                <label for="seed">種子 (-1為隨機):</label>
+                <input type="number" id="seed" value="42" min="-1">
+            </div>
+            
+            <div class="form-group">
+                <label for="shape">圖片形狀:</label>
+                <select id="shape">
+                    <option value="square">正方形 (512x512)</option>
+                    <option value="landscape" selected>橫向 (768x512)</option>
+                    <option value="portrait">縱向 (512x768)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="guidance_scale">指導比例 (1-30):</label>
+                <input type="number" id="guidance_scale" value="8.0" min="1" max="30" step="0.1">
+            </div>
+            
+            <button type="submit">🚀 生成圖片</button>
+        </form>
+        
+        <div id="result" class="result">
+            <div id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>正在生成圖片，請稍候...</p>
+            </div>
+            <div id="success" style="display: none;"></div>
+            <div id="error" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('imageForm');
+        const result = document.getElementById('result');
+        const loading = document.getElementById('loading');
+        const success = document.getElementById('success');
+        const error = document.getElementById('error');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 獲取表單數據
+            const formData = {
+                prompt: document.getElementById('prompt').value,
+                negative_prompt: document.getElementById('negative_prompt').value || null,
+                seed: parseInt(document.getElementById('seed').value),
+                shape: document.getElementById('shape').value,
+                guidance_scale: parseFloat(document.getElementById('guidance_scale').value)
+            };
+            
+            // 顯示loading狀態
+            result.style.display = 'block';
+            result.className = 'result loading';
+            loading.style.display = 'block';
+            success.style.display = 'none';
+            error.style.display = 'none';
+            
+            // 禁用提交按鈕
+            const submitBtn = form.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '生成中...';
+            
+            try {
+                const response = await fetch('http://localhost:8888/api/txttoimage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // 顯示成功結果
+                    result.className = 'result success';
+                    loading.style.display = 'none';
+                    success.style.display = 'block';
+                    
+                    success.innerHTML = `
+                        <h3>✅ 圖片生成成功!</h3>
+                        <div class="image-result">
+                            <img src="data:image/${data.image_type};base64,${data.image_base64}" 
+                                 alt="Generated Image" class="generated-image">
+                            <div class="image-info">
+                                <p><strong>圖片ID:</strong> ${data.image_id}</p>
+                                <p><strong>尺寸:</strong> ${data.width}x${data.height}</p>
+                                <p><strong>種子:</strong> ${data.seed}</p>
+                                <p><strong>檔案類型:</strong> ${data.image_type}</p>
+                                <p><strong>可能NSFW:</strong> ${data.maybe_nsfw ? '是' : '否'}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const errorData = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorData}`);
+                }
+            } catch (err) {
+                // 顯示錯誤
+                result.className = 'result error';
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.innerHTML = `
+                    <h3>❌ 生成失敗</h3>
+                    <p>${err.message}</p>
+                    <p>請檢查API服務是否正在運行，或嘗試重新生成。</p>
+                `;
+            } finally {
+                // 恢復提交按鈕
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 生成圖片';
+            }
+        });
+    </script>
+</body>
+</html>

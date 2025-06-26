@@ -60,6 +60,12 @@ class ImageResponse:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     ImageGenerator.BASE_URL + '/downloadTemporaryImage',
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                        'Accept': 'application/json',
+                        'Referer': 'https://perchance.org/ai-text-to-image-generator',
+                        'Origin': 'https://perchance.org'
+                    },
                     params={
                         'imageId': self.image_id
                     }
@@ -195,6 +201,12 @@ class ImageGenerator(AIGenerator):
                     
                     async with session.post(
                         ImageGenerator.BASE_URL + '/generate',
+                        headers={
+                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                            'Accept': 'application/json',
+                            'Referer': 'https://perchance.org/ai-text-to-image-generator',
+                            'Origin': 'https://perchance.org'
+                        },
                         params={
                             'prompt': prompt,
                             'negativePrompt': negative_prompt or '',
@@ -221,7 +233,7 @@ class ImageGenerator(AIGenerator):
                         elif status != 'success':
                             await asyncio.sleep(4.0)
                             continue
-                
+
                         return ImageResponse(
                             generator=self,
                             image_id=body['imageId'],
