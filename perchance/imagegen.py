@@ -294,7 +294,7 @@ class ImageGenerator(AIGenerator):
                             generator=self,
                             image_id=body['imageId'],
                             file_ext=body['fileExtension'],
-                            seed=seed,
+                            seed=body['seed'],
                             prompt=prompt,
                             width=body['width'],
                             height=body['height'],

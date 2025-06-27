@@ -97,6 +97,18 @@ class TextGenerator(AIGenerator):
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     TextGenerator.BASE_URL + '/generate',
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'application/json, text/plain, */*',
+                        'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'Referer': 'https://perchance.org/ai-text-to-image-generator',
+                        'Origin': 'https://perchance.org',
+                        'Connection': 'keep-alive',
+                        'Sec-Fetch-Dest': 'empty',
+                        'Sec-Fetch-Mode': 'cors',
+                        'Sec-Fetch-Site': 'same-site'
+                    },
                     params={
                         'userKey': self._key,
                         '__cacheBust': random.random(),

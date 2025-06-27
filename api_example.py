@@ -21,7 +21,7 @@ async def test_api():
     request_data = {
         "prompt": "A beautiful sunset over mountains",
         "negative_prompt": "blurry, low quality",
-        "seed": 42,
+        "seed": -1,
         "shape": "landscape",
         "guidance_scale": 8.0
     }
