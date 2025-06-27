@@ -127,7 +127,18 @@ class ImageGenerator(AIGenerator):
             key: str | None = None
 
             async with async_playwright() as pw:
-                browser = await pw.firefox.launch(headless=True)
+                #browser = await pw.firefox.launch(headless=True)
+                browser = await pw.firefox.launch(
+                    headless=True,
+                    args=[
+                        '--disable-web-security',
+                        '--disable-features=IsolateOrigins,site-per-process',
+                        '--disable-site-isolation-trials',
+                        '--disable-webgl',
+                        '--disable-gpu'
+                    ],
+                    #slow_mo=5000
+                )
                 page = await browser.new_page()
 
                 async def on_request(request: Request):
@@ -137,6 +148,7 @@ class ImageGenerator(AIGenerator):
 
                             resp = await request.response()
                             data = await resp.json()
+                            #print("API response:", data)
 
                             key = data['userKey']
                         except Exception:
@@ -168,7 +180,7 @@ class ImageGenerator(AIGenerator):
         *,
         negative_prompt: str | None = None,
         seed: int = -1,
-        shape: Literal['portrait', 'square', 'landscape'] = 'square',
+        shape: Literal['portrait', 'square', 'landscape'] = 'landscape',
         guidance_scale: float = 7.0
     ) -> ImageResponse:
         """
