@@ -61,10 +61,16 @@ class ImageResponse:
                 async with session.get(
                     ImageGenerator.BASE_URL + '/downloadTemporaryImage',
                     headers={
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'application/json, text/plain, */*',
+                        'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+                        'Accept-Encoding': 'gzip, deflate, br',
                         'Referer': 'https://perchance.org/ai-text-to-image-generator',
-                        'Origin': 'https://perchance.org'
+                        'Origin': 'https://perchance.org',
+                        'Connection': 'keep-alive',
+                        'Sec-Fetch-Dest': 'empty',
+                        'Sec-Fetch-Mode': 'cors',
+                        'Sec-Fetch-Site': 'same-site'
                     },
                     params={
                         'imageId': self.image_id
@@ -202,10 +208,18 @@ class ImageGenerator(AIGenerator):
                     async with session.post(
                         ImageGenerator.BASE_URL + '/generate',
                         headers={
-                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                            'Accept': 'application/json',
+                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'application/json, text/plain, */*',
+                            'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+                            'Accept-Encoding': 'gzip, deflate, br',
                             'Referer': 'https://perchance.org/ai-text-to-image-generator',
-                            'Origin': 'https://perchance.org'
+                            'Origin': 'https://perchance.org',
+                            'Connection': 'keep-alive',
+                            'Sec-Fetch-Dest': 'empty',
+                            'Sec-Fetch-Mode': 'cors',
+                            'Sec-Fetch-Site': 'same-site',
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
                         },
                         params={
                             'prompt': prompt,
@@ -221,10 +235,52 @@ class ImageGenerator(AIGenerator):
                         }
                     ) as response:
                         try:
-                            body = await response.json(content_type=None)
-                            status = body['status']
-                        except Exception:
-                            raise errors.ConnectionError()
+                            # 添加除錯日誌
+                            #print(f"🔍 HTTP狀態碼: {response.status}")
+                            #print(f"🔍 回應標頭: {dict(response.headers)}")
+                            
+                            # 檢查 HTTP 狀態碼
+                            if response.status == 403:
+                                print("❌ 收到 403 Forbidden，可能被防爬蟲機制阻擋")
+                                print("💡 建議檢查 User-Agent 和請求標頭")
+                                await asyncio.sleep(5.0)  # 等待更長時間再重試
+                                continue
+                            elif response.status == 429:
+                                print("❌ 收到 429 Too Many Requests，請求過於頻繁")
+                                await asyncio.sleep(10.0)  # 等待更長時間
+                                continue
+                            elif response.status != 200:
+                                print(f"❌ 收到非正常狀態碼: {response.status}")
+                                await asyncio.sleep(4.0)
+                                continue
+                            
+                            # 獲取原始回應文本進行除錯
+                            response_text = await response.text()
+                            #print(f"🔍 回應內容: {response_text[:500]}...")  # 只顯示前500字符
+                            
+                            # 檢查回應是否為空
+                            if not response_text.strip():
+                                print("❌ 回應內容為空")
+                                await asyncio.sleep(4.0)
+                                continue
+                            
+                            # 嘗試解析JSON
+                            try:
+                                import json
+                                body = json.loads(response_text)
+                                #print(f"✅ JSON解析成功: {body}")
+                            except json.JSONDecodeError as json_err:
+                                print(f"❌ JSON解析失敗: {json_err}")
+                                print(f"❌ 無法解析的內容: {response_text}")
+                                await asyncio.sleep(4.0)
+                                continue
+                            
+                            status = body.get('status', 'unknown')
+                            #print(f"🔍 API狀態: {status}")
+                        except Exception as e:
+                            print(f"❌ 處理回應時發生錯誤: {type(e).__name__}: {str(e)}")
+                            await asyncio.sleep(4.0)
+                            continue
 
                         if status == 'invalid_key':
                             raise errors.AuthError()

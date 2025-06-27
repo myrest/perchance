@@ -116,8 +116,12 @@ async def text_to_image(request: ImageRequest):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ 圖片生成失敗: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"圖片生成失敗: {str(e)}")
+        import traceback
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        print(f"❌ 圖片生成失敗: {error_msg}")
+        print(f"🔍 詳細錯誤信息:\n{error_trace}")
+        raise HTTPException(status_code=500, detail=f"圖片生成失敗: {error_msg}")
 
 
 @app.get("/health")

@@ -11,11 +11,17 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # 安裝系統依賴（Playwright需要）
 RUN apt-get update && apt-get install -y \
+    libxcursor1 \
+    libgtk-3.0 \
+    libpangocairo-1.0-0 \
+    libcairo-gobject2 \
+    libgdk-pixbuf2.0-0 \
     wget \
     gnupg \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+    
 # 複製requirements文件
 COPY requirements.txt .
 
@@ -24,7 +30,7 @@ RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 安裝Playwright瀏覽器
-RUN playwright install --with-deps chromium
+RUN playwright install --with-deps
 
 # 複製專案文件
 COPY . .
